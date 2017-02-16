@@ -5,7 +5,7 @@
 //Worked with Sierra Gonzales, Natan Brauner, and Bryant Clouse
 
 //z=sqrt(-2*ln(U1))*sin(2*pi*U2)
-//(z*sima)+u
+//(z*sigma)+mew
 
 #include <iostream>
 #include <assert.h>
@@ -30,7 +30,9 @@ public:
 };
 
 void MAB::init(){
-	mew = LYRAND * 50;
+	mew = (LYRAND-0.5) * 50;
+	sigma = LYRAND * 25;
+	reward = 0;
 }
 
 int main() {
@@ -43,7 +45,13 @@ int main() {
 
 	vector<MAB> bandit_army;
 	MAB bandito;
-	bandito.init();
+	
+	for (int i = 0; i < num_arms; i++) {
+		bandito.init();
+		bandit_army.push_back(bandito);
+		
+	}
+	
 
 	return 0;
 }

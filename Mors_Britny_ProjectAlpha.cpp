@@ -25,9 +25,9 @@ public:
 	double mew; 
 	double sigma;
 	double alpha;
-	double reward;
-	double value;
-	double value_old;
+
+	vector<double> reward;
+	vector<double> value;
 
 	void init();
 	void pull();
@@ -37,37 +37,30 @@ void MAB::init(){
 	mew = (LYRAND-0.5) * 50;
 	sigma = LYRAND * 25;
 	alpha = 0.1;
-	value = 0;
-	value_old = 0;
 }
 
 void MAB::pull() {
 		double U1 = LYRAND;
 		double U2 = LYRAND;
 		double z = sqrt(-2*log(U1))*cos(2*PI*U2);
-		reward = (z*sigma) + mew;
-
-		ofstream rfile; //create and open a file to save reward into
-		rfile.open("reward.csv"); 
-		rfile << reward << endl;
-
-		value=(reward* alpha) + (value_old * (1 - alpha));
-
-		ofstream vfile;
-		vfile.open("value.csv");
-		vfile << value << endl;
-
-		value_old = value;
+		reward.push_back((z*sigma) + mew);
+		int r_size = reward.size();
+		int v_size = value.size();
+		if (v_size == 0) {
+			value.push_back(reward[r_size - 1] * alpha);
+		}
+		else {
+			value.push_back((reward[r_size - 1] * alpha) + (value[v_size - 1] * (1 - alpha)));
+		}
 }
 
-/*int Greedy(vector<MAB> robit) {
+int Greedy(vector<MAB> robit) {
 	int robit_size = robit.size();
 	int output = 0;
 	for (int j = 0; j < robit_size; j++) {
-		if (robit[output].value[)
+		if (robit[output])
 	}
 }
-*/
 int main() {
 	srand(time(NULL));
 

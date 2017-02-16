@@ -32,9 +32,7 @@ public:
 
 void MAB::init(){
 	mew = (LYRAND-0.5) * 50;
-	cout << "MEW\t" << mew << endl;
 	sigma = LYRAND * 25;
-	cout << "SIGMA\t" << sigma << endl;
 	reward = 0.0;
 }
 
@@ -42,7 +40,7 @@ void MAB::pull() {
 		double U1 = LYRAND;
 		double U2 = LYRAND;
 		double z = sqrt(-2*log(U1))*cos(2*PI*U2);
-		reward = (z*sigma) + mew;
+		reward = reward + ((z*sigma) + mew);
 }
 
 int main() {
@@ -58,12 +56,11 @@ int main() {
 	
 	for (int i = 0; i < num_arms; i++) {
 		bandito.init(); //initialize bandit
-		bandit_army.push_back(bandito); //save bandit to vector element
+		bandit_army.push_back(bandito);//save bandit to vector element
 	}
-	bandito.pull();
-	//bandit_army.at(2).pull;
-	
-	
+
+	//int rando = 
+	bandit_army[rand()%num_arms].pull(); //randomly pull 1 arm
 
 	return 0;
 }

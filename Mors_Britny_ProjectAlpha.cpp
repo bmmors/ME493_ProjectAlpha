@@ -13,9 +13,10 @@
 #include <cmath>
 #include <random>
 #include <time.h>
+#include <fstream>
 
 #define LYRAND (double)rand()/RAND_MAX
-
+#define PI (double)3.1415
 using namespace std;
 
 
@@ -31,26 +32,37 @@ public:
 
 void MAB::init(){
 	mew = (LYRAND-0.5) * 50;
+	cout << "MEW\t" << mew << endl;
 	sigma = LYRAND * 25;
-	reward = 0;
+	cout << "SIGMA\t" << sigma << endl;
+	reward = 0.0;
+}
+
+void MAB::pull() {
+		double U1 = LYRAND;
+		double U2 = LYRAND;
+		double z = sqrt(-2*log(U1))*cos(2*PI*U2);
+		reward = (z*sigma) + mew;
 }
 
 int main() {
 	srand(time(NULL));
 
-	int num_arms = 0;
+	int num_arms = 0; //initalize num_arms 
 	cout << "Welcome to Las Vegas! Lets play some slots!\n";
 	cout << "How many arms does your bandit have?\n" << "Please enter an integer:" << endl;
-	cin >> num_arms;
+	cin >> num_arms; //save user input to num arms
 
-	vector<MAB> bandit_army;
-	MAB bandito;
+	vector<MAB> bandit_army; //create vector to store bandit information
+	MAB bandito; //create bandit
 	
 	for (int i = 0; i < num_arms; i++) {
-		bandito.init();
-		bandit_army.push_back(bandito);
-		
+		bandito.init(); //initialize bandit
+		bandit_army.push_back(bandito); //save bandit to vector element
 	}
+	bandito.pull();
+	//bandit_army.at(2).pull;
+	
 	
 
 	return 0;

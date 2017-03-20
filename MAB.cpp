@@ -23,14 +23,17 @@ public:
 	double sigma; //standard deviation
 
 	void init();
+	double pull();
 };
 
 class learner {
 public:
 	double alpha;
 	double epsilon;
+	vector <double> Qtable;
 
-	void init();
+	void init(int arms);
+	int decide();
 };
 
 void bandit::init() {
@@ -38,14 +41,29 @@ void bandit::init() {
 	sigma = BMMRAND * 25; //set sigma between 0 and 25;
 }
 
-void learner::init() {
+double bandit::pull() {
+	double r = 0;
+	double z = 0;
+	double U1 = BMMRAND;
+	double U2 = BMMRAND;
+	z = sqrt(-2 * log(U1))*cos(2*pi*U2);
+	r = (z*sigma) + mew;
+	return r;
+}
+
+void learner::init(int amrs) {
 	alpha = 0.1; 
 	epsilon = 0.1; //Take greedy action 10% of the time
 }
 
+int learner::decide() {
+
+}
+
 int main() {
 	srand(time(NULL));
-	//Generate number of bandits
+
+	///Generate number of bandits
 	int num_arms = 5;
 	vector<bandit> army;
 	
@@ -57,6 +75,22 @@ int main() {
 	}
 	assert(army.size() == num_arms); //make sure accurate number of arms created. 
 
+	///Initialize Action Value Learner
+	learner L;
+	L.init();
+
+	///Run for n statistical runs 
+	int stat_runs = 1;
+	int run = 1000;
+	int select = -1;
+	vector<vector<double>> reward;
+
+	for (int i = 0; i < stat_runs; i++) {
+		for (int j = 0; j < run; j++) {
+			select = L.decide();
+			reward[i][j].push_back(army[select].pull());
+		}
+	}
 
 	return 0;
 }

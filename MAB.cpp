@@ -17,50 +17,52 @@ using namespace std;
 #define BMMRAND (double)rand()/RAND_MAX //generates random number from 0 to 1
 #define pi (double)3.1415
 
-////Bandit Setup////
+//---------------------------------Bandit Setup---------------------------------//
 class bandit {
 public:
 	double mew; //mean
 	double sigma; //standard deviation
 	double actionvalue; 
 
-	void init(int A);
+	void init(double A);
 	double pull();
 	void update(double reward, double alpha);
 };
-
-void bandit::init(int A) {
-	mew = (BMMRAND - 0.5) * 50; //set mean between -50 to 50
-	sigma = BMMRAND * 25; //set sigma between 0 and 25;
-	actionvalue = 0;
-	int R = pull();
-	cout << "R:" << R << endl;
-	update(R, A);
-	cout << "actionvalue" << actionvalue << endl;
-}
 
 double bandit::pull() {
 	double r = 0;
 	double z = 0;
 	double U1 = BMMRAND;
 	double U2 = BMMRAND;
-	z = sqrt(-2 * log(U1))*cos(2*pi*U2);
+	z = sqrt(-2 * log(U1))*cos(2 * pi*U2);
 	r = (z*sigma) + mew;
 	return r;
 }
 
 void bandit::update(double reward, double alpha) {
-	actionvalue = reward*alpha + actionvalue*(1 - alpha);
-	cout << "actionvalue:" << actionvalue << endl;
+	double tempaction = actionvalue;
+	actionvalue = reward*alpha + tempaction*(1 - alpha);
+	//cout << "actionvalue:" << actionvalue << endl;
 }
-////End Bandit Setup////
+
+void bandit::init(double A) {
+	mew = (BMMRAND - 0.5) * 25; //set mean between -25 to 25
+	sigma = BMMRAND * 25; //set sigma between 0 and 25;
+	actionvalue = 0;
+	int R = pull(); //pull each arm at initialization to keep from having to manage ties
+	actionvalue = R*A + actionvalue*(1 - A); //save first action value
+}
+//---------------------------------End Bandit Setup---------------------------------//
 
 
 
-////Learner Setup////
+
+
+
+//---------------------------------Learner Setup---------------------------------//
 class learner {
 public:
-	double alpha;
+	double alpha = 0.1;
 	double epsilon;
 
 	void init();
@@ -90,11 +92,10 @@ int learner::decide(vector<bandit> B) {
 	}
 	
 	
-	cout << "Select:" << select << endl;
+	//cout << "Select:" << select << endl;
 	return select;
 }
-
-////End Learner Setup////
+//---------------------------------End Learner Setup---------------------------------//
 
 
 int main() {
@@ -102,8 +103,7 @@ int main() {
 
 	///Initialize Action Value Learner
 	learner L;
-	L.init();
-	int selection = 0;
+	int selection = 0; //arm selection variable
 
 	///Generate number of bandits
 	int num_arms = 5;
@@ -112,51 +112,55 @@ int main() {
 	for (int k = 0; k < num_arms; k++) {
 		bandit B; //create an arm
 		B.init(L.alpha); //initialize each arm
+		assert(B.mew < 25 && B.mew > -25); //assert std deviation was created
 		army.push_back(B); //save arm into army
-		assert(B.mew < 50 && B.mew > -50); //assert std deviation was created
+		
 	}
 	assert(army.size() == num_arms); //make sure accurate number of arms created. 
-	/*
+	
 	///Run for n statistical runs 
-	int stat_runs = 10;
+	int stat_runs = 30;
 	int run = 1000;
 	vector<double> reward;
 	double tempreward = 0;
 
 	for (int k = 0; k < run; k++) {
-		reward.push_back(0);
+		reward.push_back(0); //set reward vector to zero
 	}
-	assert(reward.size() == run);
+	assert(reward.size() == run); //double check reward size
 
+								  
+//---------------------------------Begin Statistical Runs---------------------------------//
 
-	for (int i = 0; i < stat_runs; i++) { //statistical runs
-
-										  //pull random arm first
-		selection = rand() % num_arms;
-		cout << "first select:" << selection << endl;
-		tempreward = army[selection].pull();
-		army[selection].update(tempreward, L.alpha);
-		reward[0] += tempreward;
-
+	for (int i = 0; i < stat_runs; i++) { 
+		double total_reward = 0;
+		tempreward = 0;
 		//start learner loop
-		for (int j = 1; j < run-1; j++) {
+		for (int j = 0; j < run; j++) {
 			selection = L.decide(army); //choose arm based on greedy/exploratory and actionvalue
 			tempreward = army[selection].pull(); //pull the lever for the arm and get reward. Save into temp value.
-			//cout << "Tempreward:" << tempreward << endl;
 			army[selection].update(tempreward, L.alpha); //update actionvalue for arm that was pulled based on reward
-			//cout << "Rewardbefore:" << reward[j] << endl;
-
-			reward[j] += tempreward;
-			//cout << "Rewardafter:" << reward[j] << endl;
+			total_reward += tempreward;
+			//cout << "total reward:\t" << total_reward << endl;
+			if (j == 0) {
+				reward[j] += tempreward;
+			}
+			else {
+				reward[j] = total_reward;
+			}
+			//cout << "stat run:\t" << i << "\tRun:\t" << j << "\tTempreward:\t" << tempreward << "\tReward:\t" << reward[j] << endl;
 		}
 		//end learner loop
 
 		for (int k = 0; k < num_arms; k++) {
-			army[k].actionvalue = 0; //reset all action values back to zero for next stat run
+			army.at(k).init(L.alpha); //reset all action values back to zero for next stat run
 		}
 	}
-	//end stat runs
 	assert(reward.size() == run); //size of reward vector should be equal to the number of runs
+
+	//---------------------------------End Statistical Runs---------------------------------//
+
+	
 
 	ofstream myfile;
 	myfile.open("learningcurve.csv");
@@ -164,6 +168,6 @@ int main() {
 		myfile << reward[i] << endl;
 	}
 	myfile.close();
-	*/
+	
 	return 0;
 }

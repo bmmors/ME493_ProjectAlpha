@@ -22,11 +22,9 @@ class bandit {
 public:
 	double mew; //mean
 	double sigma; //standard deviation
-	double actionvalue; 
 
-	void init(double A);
+	void init();
 	double pull();
-	void update(double reward, double alpha);
 };
 
 double bandit::pull() {
@@ -39,18 +37,10 @@ double bandit::pull() {
 	return r;
 }
 
-void bandit::update(double reward, double alpha) {
-	double tempaction = actionvalue;
-	actionvalue = reward*alpha + tempaction*(1 - alpha);
-	//cout << "actionvalue:" << actionvalue << endl;
-}
-
-void bandit::init(double A) {
-	mew = (BMMRAND - 0.5) * 25; //set mean between -25 to 25
+void bandit::init() {
+	mew = (BMMRAND - 0.5) * 50; //set mean between -25 to 25
 	sigma = BMMRAND * 25; //set sigma between 0 and 25;
-	actionvalue = 0;
 	int R = pull(); //pull each arm at initialization to keep from having to manage ties
-	actionvalue = R*A + actionvalue*(1 - A); //save first action value
 }
 //---------------------------------End Bandit Setup---------------------------------//
 
@@ -64,36 +54,38 @@ class learner {
 public:
 	double alpha = 0.1;
 	double epsilon;
+	int select;
+	vector<double> v;
 
-	void init();
-	int decide(vector<bandit> B);
+	void init(int num_arms);
+	void decide(int num_arms);
+	void update(double R);
 };
 
-void learner::init() {
-	alpha = 0.1; 
+void learner::init(int num_arms) { 
+	for (int i = 0; i < num_arms; i++) {
+		v.push_back(100);
+	}
 }
 
-int learner::decide(vector<bandit> B) {
-	epsilon = BMMRAND;
-	int select = 0;
-
-	if (epsilon <= 0.1) {
-		select = rand() % B.size();
-	}
-	else {
-		double temp = B[0].actionvalue;
-
-		for (int i = 1; i < B.size(); i++) {
-			if (temp < B[i].actionvalue) {
-				select = i;
-				temp = B[i].actionvalue;
-			}
+void learner::decide(int num_arms) {
+	epsilon = rand()%10;
+	int select = 0; //start at first arm
+	double test = 0; //clear test variable
+	test = v.at(select); //set test variable to the action value of the first arm
+	for (int i = 1; i < num_arms; i++) {
+		if (epsilon == 1) { //exploratory 
+			select = rand() % num_arms;
+		}
+		else if (test < v.at(i)) { //greedy
+			select = i; //save arm with highest action value
+			test = v.at(i); //save new highest value
 		}
 	}
-	
-	
-	//cout << "Select:" << select << endl;
-	return select;
+}
+
+void learner::update(double R) {
+	v.at(select) = v.at(select) + alpha*(R - v.at(select));
 }
 //---------------------------------End Learner Setup---------------------------------//
 
@@ -101,73 +93,66 @@ int learner::decide(vector<bandit> B) {
 int main() {
 	srand(time(NULL));
 
-	///Initialize Action Value Learner
-	learner L;
-	int selection = 0; //arm selection variable
-
 	///Generate number of bandits
 	int num_arms = 5;
-	vector<bandit> army;
+	vector<bandit> army; 
 
 	for (int k = 0; k < num_arms; k++) {
 		bandit B; //create an arm
-		B.init(L.alpha); //initialize each arm
-		assert(B.mew < 25 && B.mew > -25); //assert std deviation was created
+		B.init(); //initialize each arm
+		assert(B.mew < 50 && B.mew > -50); //assert std deviation was created
 		army.push_back(B); //save arm into army
-		
+
 	}
-	assert(army.size() == num_arms); //make sure accurate number of arms created. 
+	assert(army.size() == num_arms); //make sure accurate number of arms created.
+
+	///Initialize Action Value Learner
+	learner L;
+	L.init(num_arms);
 	
 	///Run for n statistical runs 
-	int stat_runs = 30;
-	int run = 1000;
+	int stat_runs = 10;
+	int run = 100;
 	vector<double> reward;
-	double tempreward = 0;
-
-	for (int k = 0; k < run; k++) {
-		reward.push_back(0); //set reward vector to zero
+	double r = 0;
+	
+	for (int i = 0; i < run; i++) {
+		reward.push_back(0);
 	}
-	assert(reward.size() == run); //double check reward size
-
-								  
+	assert(reward.size() == run);
+							  
 //---------------------------------Begin Statistical Runs---------------------------------//
 
 	for (int i = 0; i < stat_runs; i++) { 
-		double total_reward = 0;
-		tempreward = 0;
-		//start learner loop
-		for (int j = 0; j < run; j++) {
-			selection = L.decide(army); //choose arm based on greedy/exploratory and actionvalue
-			tempreward = army[selection].pull(); //pull the lever for the arm and get reward. Save into temp value.
-			army[selection].update(tempreward, L.alpha); //update actionvalue for arm that was pulled based on reward
-			total_reward += tempreward;
-			//cout << "total reward:\t" << total_reward << endl;
-			if (j == 0) {
-				reward[j] += tempreward;
-			}
-			else {
-				reward[j] = total_reward;
-			}
-			//cout << "stat run:\t" << i << "\tRun:\t" << j << "\tTempreward:\t" << tempreward << "\tReward:\t" << reward[j] << endl;
-		}
-		//end learner loop
 
-		for (int k = 0; k < num_arms; k++) {
-			army.at(k).init(L.alpha); //reset all action values back to zero for next stat run
+		L.select = rand() % num_arms; //pull random arm first
+		r = army.at(L.select).pull();
+		reward.at(0) += r; //save reward
+		L.update(r); //update action value for that arm
+
+		cout << "Arm:\t" << L.select << "\tReward:\t" << r << "\tQ:\t" << L.v.at(L.select) << endl;
+		///start learner loop
+		for (int j = 1; j < run-1; j++) {
+			L.decide(num_arms); //decide which arm to pull 
+			r = army.at(L.select).pull();
+			reward.at(j) += r; //save reward
+			L.update(r); //update action value for that arm
+			cout << "Arm:\t" << L.select << "\tReward:\t" << r << "\tQ:\t" << L.v.at(L.select) << endl;
 		}
+		///end learner loop
+		L.init(num_arms);
 	}
-	assert(reward.size() == run); //size of reward vector should be equal to the number of runs
+		
 
-	//---------------------------------End Statistical Runs---------------------------------//
+//---------------------------------End Statistical Runs---------------------------------//
 
 	
-
 	ofstream myfile;
 	myfile.open("learningcurve.csv");
 	for (int i = 0; i < run; i++) {
 		myfile << reward[i] << endl;
 	}
 	myfile.close();
-	
+
 	return 0;
 }
